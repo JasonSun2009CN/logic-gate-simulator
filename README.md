@@ -42,11 +42,68 @@ https://JasonSun2009CN.github.io/logic-gate-simulator
 - NAND / NOR
 - XNOR
 
+## 📊 Truth Tables
+
+### NOT
+| A | Y |
+| --- | --- |
+| 0 | 1 |
+| 1 | 0 |
+
+### AND
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 0 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
+| 1 | 1 | 1 |
+
+### OR
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 1 |
+
+### XOR
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+### NAND
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 1 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+### NOR
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 1 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
+| 1 | 1 | 0 |
+
+### XNOR
+| A | B | Y |
+| --- | --- | --- |
+| 0 | 0 | 1 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
+| 1 | 1 | 1 |
+
 ## 📁 Project Structure
 ```
 logic-gate-simulator/
-├── index.html    # Main entry
-└── README.md     # Project docs
+├── index.html          # Main entry
+├── README.md           # Project documentation
+└── spec.md             # Reserved for specification files
 ```
 
 ## 🔧 Tech Stack
@@ -68,4 +125,4 @@ MIT
 ---
 Built with ❤️ for digital logic learning.
 
-要不要我帮你再做一版**更精简的 GitHub 极简 README**，适合直接贴在仓库首页？
+---
