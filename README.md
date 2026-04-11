@@ -4,7 +4,7 @@ A visual drag-and-drop logic circuit designer and simulator. Build circuits with
 ![Logic](https://img.shields.io/badge/Logic-Gate-blue)
 ![HTML5](https://img.shields.io/badge/HTML5-CSS%2BJS-orange)
 ![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-brightgreen)
-)
+
 
 ## ✨ Features
 - Drag & drop gate builder
