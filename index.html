@@ -10,9 +10,29 @@
 body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
 /* NAVBAR */
-.navbar { height:50px; background:#161b22; border-bottom:1px solid #30363d; display:flex; align-items:center; justify-content:space-between; padding:0 16px; flex-shrink:0; }
+.navbar { min-height:50px; background:#161b22; border-bottom:1px solid #30363d; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 16px; flex-shrink:0; flex-wrap:wrap; }
 .logo { color:#58a6ff; font-weight:bold; font-size:14px; }
+.navbar-right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-left:auto; justify-content:flex-end; }
+.navbar-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.nav-link-btn { text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
 .help-tip { font-size:11px; color:#8b949e; background:#1f2937; border:1px solid #30363d; border-radius:6px; padding:4px 10px; }
+
+/* DONATION MODAL */
+.donate-modal { position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; padding:16px; }
+.donate-modal.is-open { display:flex; }
+.donate-modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.65); cursor:pointer; }
+.donate-modal-panel { position:relative; z-index:1; background:#161b22; border:1px solid #30363d; border-radius:10px; max-width:720px; width:100%; max-height:90vh; overflow-y:auto; padding:20px; box-shadow:0 16px 48px rgba(0,0,0,0.45); }
+.donate-modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.donate-modal-header h2 { font-size:15px; font-weight:600; color:#e6edf3; }
+.donate-modal-hint { font-size:12px; color:#8b949e; margin-bottom:4px; }
+.donate-modal-close { width:32px; height:32px; border:none; border-radius:6px; background:#1f2937; color:#8b949e; font-size:20px; line-height:1; cursor:pointer; flex-shrink:0; }
+.donate-modal-close:hover { background:#30363d; color:#fff; }
+.donate-images { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px; }
+.donate-images figure { margin:0; }
+.donate-images img { width:100%; height:auto; display:block; border-radius:8px; border:1px solid #30363d; }
+@media (max-width:600px) {
+  .donate-images { grid-template-columns:1fr; }
+}
 
 /* TABS */
 .tab-bar { height:44px; background:#161b22; display:flex; position:relative; border-bottom:1px solid #30363d; flex-shrink:0; }
@@ -107,7 +127,13 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
 
 <div class="navbar">
   <div class="logo">⊕ LOGIC GATE SIMULATOR</div>
-  <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Click wire (or right-click) to delete</span>
+  <div class="navbar-right">
+    <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Click wire (or right-click) to delete</span>
+    <div class="navbar-actions">
+      <a class="btn btn-secondary nav-link-btn" href="https://github.com/JasonSun2009CN/logic-gate-simulator" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button type="button" class="btn btn-secondary" id="donateBtn">Donate</button>
+    </div>
+  </div>
 </div>
 
 <div class="tab-bar" id="tabBar">
@@ -184,6 +210,21 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
     </div>
   </div>
 
+</div>
+
+<div id="donateModal" class="donate-modal" role="dialog" aria-modal="true" aria-labelledby="donateModalTitle">
+  <div class="donate-modal-backdrop" id="donateModalBackdrop" aria-hidden="true"></div>
+  <div class="donate-modal-panel">
+    <div class="donate-modal-header">
+      <h2 id="donateModalTitle">Support this website</h2>
+      <button type="button" class="donate-modal-close" id="donateModalClose" aria-label="Close">&times;</button>
+    </div>
+    <p class="donate-modal-hint">Scan to donate — thank you for your support. Wechat Pay and AliPay are both supported.</p>
+    <div class="donate-images">
+      <figure><img src="IMG_5462.JPG" alt="Donation QR code" loading="lazy"></figure>
+      <figure><img src="IMG_5463.JPG" alt="Donation QR code" loading="lazy"></figure>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1026,6 +1067,31 @@ function switchTab(page) {
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => switchTab(tab.dataset.page));
+});
+
+// ─── DONATE MODAL ─────────────────────────────────────────────────────────────
+const donateModal = document.getElementById('donateModal');
+const donateBtn = document.getElementById('donateBtn');
+const donateModalClose = document.getElementById('donateModalClose');
+const donateModalBackdrop = document.getElementById('donateModalBackdrop');
+
+function openDonateModal() {
+  donateModal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  donateModalClose.focus();
+}
+
+function closeDonateModal() {
+  donateModal.classList.remove('is-open');
+  document.body.style.overflow = '';
+  donateBtn.focus();
+}
+
+donateBtn.addEventListener('click', openDonateModal);
+donateModalClose.addEventListener('click', closeDonateModal);
+donateModalBackdrop.addEventListener('click', closeDonateModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && donateModal.classList.contains('is-open')) closeDonateModal();
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
