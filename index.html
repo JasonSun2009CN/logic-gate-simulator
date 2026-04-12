@@ -39,14 +39,17 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
 .gate-item:active { cursor:grabbing; }
 
 /* CANVAS */
-.canvas-area { flex:1; position:relative; background:#0d1117; background-image:radial-gradient(#21262d 1px, transparent 1px); background-size:24px 24px; overflow:hidden; }
-#canvas { width:100%; height:100%; position:absolute; top:0; left:0; }
-#wire-svg { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.canvas-area { flex:1; position:relative; background:#0d1117; background-image:radial-gradient(#21262d 1px, transparent 1px); background-size:24px 24px; overflow:auto; min-height:0; }
+.canvas-inner { position:relative; width:100%; min-height:100%; }
+#canvas { position:relative; width:100%; min-height:100%; box-sizing:border-box; overflow:visible; }
+#wire-svg { position:absolute; top:0; left:0; pointer-events:none; display:block; }
 
 /* GATES */
 .gate { position:absolute; background:#1f2937; border:2px solid #58a6ff; border-radius:8px; padding:10px 16px; font-size:12px; cursor:move; min-width:80px; text-align:center; color:#fff; transition:box-shadow .15s; z-index:10; }
 .gate:hover { box-shadow:0 0 0 1px #58a6ff44; }
 .gate.selected { box-shadow:0 0 0 2px #f0883e; }
+.gate-delete { position:absolute; top:-8px; right:-8px; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; font-weight:bold; color:#f85149; background:#161b22; border:1px solid #5a2020; border-radius:4px; cursor:pointer; z-index:35; padding:0; user-select:none; }
+.gate-delete:hover { background:#3d1a1a; color:#fff; }
 .gate-label { pointer-events:none; font-size:11px; font-weight:600; }
 .gate-var { pointer-events:none; font-size:10px; color:#8b949e; }
 
@@ -104,7 +107,7 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
 
 <div class="navbar">
   <div class="logo">⊕ LOGIC GATE SIMULATOR</div>
-  <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Right-click wire to delete</span>
+  <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Click wire (or right-click) to delete</span>
 </div>
 
 <div class="tab-bar" id="tabBar">
@@ -146,16 +149,18 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
       </div>
 
       <div class="canvas-area" id="canvasArea">
-        <div id="canvas"></div>
-        <svg id="wire-svg">
-          <defs>
-            <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L6,3 z" fill="#58a6ff"/>
-            </marker>
-          </defs>
-          <g id="wires-group"></g>
-          <line id="preview-line" stroke="#f0883e" stroke-width="2" stroke-dasharray="6 3" display="none"/>
-        </svg>
+        <div class="canvas-inner">
+          <div id="canvas"></div>
+          <svg id="wire-svg">
+            <defs>
+              <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L6,3 z" fill="#58a6ff"/>
+              </marker>
+            </defs>
+            <g id="wires-group"></g>
+            <line id="preview-line" stroke="#f0883e" stroke-width="2" stroke-dasharray="6 3" display="none"/>
+          </svg>
+        </div>
       </div>
     </div>
   </div>
@@ -164,8 +169,8 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
   <div class="page page-expr">
     <div class="expr-page">
       <div>
-        <input class="expr-input" id="exprInput" placeholder="e.g.  Y = (A AND B) OR NOT C   or   A XOR B = Y" style="width:100%;">
-        <p class="hint-text" style="margin-top:6px;">Supported: AND, OR, NOT, XOR, NAND, NOR, XNOR — use parentheses for grouping</p>
+        <textarea class="expr-input" id="exprInput" rows="3" placeholder="e.g. one line: Y = (A AND B) OR NOT C&#10;or multiple lines (one expression per line)" style="width:100%;resize:vertical;"></textarea>
+        <p class="hint-text" style="margin-top:6px;">Supported: AND, OR, NOT, XOR, NAND, NOR, XNOR — use parentheses for grouping. One expression per line for multiple outputs.</p>
       </div>
       <div class="btn-bar">
         <button class="btn btn-primary" id="buildBtn">Build Circuit</button>
@@ -191,6 +196,9 @@ const wireSvg     = document.getElementById('wire-svg');
 const wiresGroup  = document.getElementById('wires-group');
 const previewLine = document.getElementById('preview-line');
 const canvasArea  = document.getElementById('canvasArea');
+
+/** Approximate gate box height for layout before measure */
+const GATE_BODY_H = 46;
 
 let gates      = [];
 let wires      = [];
@@ -223,11 +231,19 @@ const EVAL = {
   XNOR: ([a,b])  => (a ^ b) ^ 1,
 };
 
-// ─── TOGGLES ─────────────────────────────────────────────────────────────────
-function initToggles() {
+// ─── TOGGLES (only vars used by INPUT gates on canvas) ───────────────────────
+function rebuildTogglePanel() {
   const box = document.getElementById('toggleContainer');
   box.innerHTML = '';
-  INPUT_VARS.slice(0,6).forEach(v => {
+  const used = [...new Set(gates.filter(g => g.type === 'INPUT').map(g => g.varName))]
+    .filter(v => v && v !== '?')
+    .sort();
+  if (!used.length) {
+    box.innerHTML = '<p style="font-size:11px;color:#555;margin:0;">Toggles appear for each INPUT on the canvas.</p>';
+    return;
+  }
+  used.forEach(v => {
+    if (inputValues[v] === undefined) inputValues[v] = 0;
     const row = document.createElement('div');
     row.className = 'toggle-row';
     row.dataset.v = v;
@@ -246,13 +262,15 @@ function initToggles() {
 }
 
 function refreshToggles() {
-  INPUT_VARS.forEach(v => {
-    const sw = document.getElementById('sw-'+v);
-    const vb = document.getElementById('vb-'+v);
-    if (!sw) return;
-    sw.className = 'toggle-switch' + (inputValues[v] ? ' on' : '');
-    vb.textContent = inputValues[v];
-    vb.className   = 'val-badge ' + (inputValues[v] ? 'v1' : 'v0');
+  document.querySelectorAll('#toggleContainer .toggle-row').forEach(row => {
+    const v = row.dataset.v;
+    const sw = document.getElementById('sw-' + v);
+    const vb = document.getElementById('vb-' + v);
+    if (!sw || !vb) return;
+    const val = inputValues[v] ? 1 : 0;
+    sw.className = 'toggle-switch' + (val ? ' on' : '');
+    vb.textContent = String(val);
+    vb.className = 'val-badge ' + (val ? 'v1' : 'v0');
   });
   // update INPUT gate labels
   gates.filter(g => g.type === 'INPUT').forEach(g => refreshGateLabel(g));
@@ -283,12 +301,16 @@ function createGate(type, x, y, varName) {
   el.style.top   = y + 'px';
   el.dataset.gid = id;
 
-  const vn = (type === 'INPUT') ? (varName || nextInputVar()) : (type === 'OUTPUT' ? 'OUT' : null);
+  const vn = type === 'INPUT'
+    ? (varName || nextInputVar())
+    : type === 'OUTPUT'
+      ? (varName != null && String(varName).trim() !== '' ? String(varName).trim().toUpperCase() : 'OUT')
+      : null;
 
   el.innerHTML = type === 'INPUT'
     ? `<div class="gate-label">${vn}</div><div class="gate-var">= 0</div>`
     : type === 'OUTPUT'
-    ? `<div class="gate-label">OUT</div><div class="gate-var">= 0</div>`
+    ? `<div class="gate-label">${vn}</div><div class="gate-var">= 0</div>`
     : `<div class="gate-label">${type}</div>`;
 
   const gate = { id, type, x, y, el, varName: vn, currentVal: 0 };
@@ -314,10 +336,64 @@ function createGate(type, x, y, varName) {
     el.appendChild(pin);
   }
 
+  const del = document.createElement('div');
+  del.className = 'gate-delete';
+  del.textContent = '×';
+  del.title = 'Delete';
+  del.addEventListener('mousedown', e => e.stopPropagation());
+  del.addEventListener('click', e => { e.stopPropagation(); deleteGate(id); });
+  el.appendChild(del);
+
   canvas.appendChild(el);
   gates.push(gate);
   enableDrag(el, gate);
   return gate;
+}
+
+function deleteGate(gid) {
+  if (connecting && connecting.gid === gid) cancelConnecting();
+  wires = wires.filter(w => w.fromGid !== gid && w.toGid !== gid);
+  const g = gates.find(x => x.id === gid);
+  if (g) {
+    g.el.remove();
+    gates = gates.filter(x => x.id !== gid);
+  }
+  rebuildTogglePanel();
+  simulate();
+  fitCanvasToContent();
+}
+
+function fitCanvasToContent() {
+  const pad = 36;
+  const areaW = canvasArea.clientWidth || 400;
+  const areaH = canvasArea.clientHeight || 320;
+  if (!gates.length) {
+    canvas.style.width = '100%';
+    canvas.style.height = areaH + 'px';
+    canvas.style.minHeight = areaH + 'px';
+    wireSvg.style.width = '100%';
+    wireSvg.style.height = areaH + 'px';
+    wireSvg.setAttribute('width', String(areaW));
+    wireSvg.setAttribute('height', String(areaH));
+    return;
+  }
+  let maxR = pad;
+  let maxB = pad;
+  gates.forEach(g => {
+    const w = g.el.offsetWidth || 96;
+    const h = g.el.offsetHeight || GATE_BODY_H;
+    maxR = Math.max(maxR, g.x + w + pad);
+    maxB = Math.max(maxB, g.y + h + pad);
+  });
+  const w = Math.max(areaW, maxR);
+  const h = Math.max(areaH, maxB);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.style.minHeight = '';
+  wireSvg.style.width = w + 'px';
+  wireSvg.style.height = h + 'px';
+  wireSvg.setAttribute('width', String(w));
+  wireSvg.setAttribute('height', String(h));
 }
 
 function makePinEl(gid, idx, isOutput, total) {
@@ -375,14 +451,13 @@ function cancelConnecting() {
 function showPreview(fromPin) {
   const move = e => {
     if (!connecting) { document.removeEventListener('mousemove', move); return; }
-    const r    = canvasArea.getBoundingClientRect();
-    const pr   = fromPin.getBoundingClientRect();
-    const x1   = pr.left + pr.width/2  - r.left;
-    const y1   = pr.top  + pr.height/2 - r.top;
-    previewLine.setAttribute('x1', x1); previewLine.setAttribute('y1', y1);
-    previewLine.setAttribute('x2', e.clientX - r.left);
-    previewLine.setAttribute('y2', e.clientY - r.top);
-    previewLine.setAttribute('display','');
+    const sr = wireSvg.getBoundingClientRect();
+    const pr = fromPin.getBoundingClientRect();
+    previewLine.setAttribute('x1', pr.left + pr.width / 2 - sr.left);
+    previewLine.setAttribute('y1', pr.top + pr.height / 2 - sr.top);
+    previewLine.setAttribute('x2', e.clientX - sr.left);
+    previewLine.setAttribute('y2', e.clientY - sr.top);
+    previewLine.setAttribute('display', '');
   };
   document.addEventListener('mousemove', move);
 }
@@ -413,7 +488,7 @@ function deleteWire(id) {
 
 function redrawWires(vals) {
   wiresGroup.innerHTML = '';
-  const r = canvasArea.getBoundingClientRect();
+  const sr = wireSvg.getBoundingClientRect();
   wires.forEach(w => {
     const fromGate = gates.find(g => g.id === w.fromGid);
     const toGate   = gates.find(g => g.id === w.toGid);
@@ -424,25 +499,26 @@ function redrawWires(vals) {
     if (!fp || !tp) return;
 
     const fr = fp.getBoundingClientRect(), tr = tp.getBoundingClientRect();
-    const x1 = fr.left + fr.width/2  - r.left, y1 = fr.top + fr.height/2 - r.top;
-    const x2 = tr.left + tr.width/2  - r.left, y2 = tr.top + tr.height/2 - r.top;
+    const x1 = fr.left + fr.width / 2 - sr.left, y1 = fr.top + fr.height / 2 - sr.top;
+    const x2 = tr.left + tr.width / 2 - sr.left, y2 = tr.top + tr.height / 2 - sr.top;
 
-    // bezier curve for nicer routing
-    const dx  = Math.abs(x2 - x1) * 0.5 + 30;
-    const d   = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+    const spread = ((w.id * 17) % 11 - 5) * 4;
+    const dx = Math.abs(x2 - x1) * 0.5 + 34 + spread;
+    const d  = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
 
     const val = vals ? vals.get(w.fromGid) : undefined;
     const col = val === 1 ? '#3fb950' : val === 0 ? '#f85149' : '#58a6ff';
 
     // hit area (invisible, wide, for right-click)
     const hit = document.createElementNS('http://www.w3.org/2000/svg','path');
+    hit.setAttribute('class', 'wire-hit');
     hit.setAttribute('d', d);
     hit.setAttribute('stroke','transparent');
     hit.setAttribute('stroke-width','12');
     hit.setAttribute('fill','none');
-    hit.style.cursor = 'pointer';
+    hit.addEventListener('click', e => { e.stopPropagation(); deleteWire(w.id); });
     hit.addEventListener('contextmenu', e => { e.preventDefault(); deleteWire(w.id); });
-    hit.title = 'Right-click to delete';
+    hit.title = 'Click or right-click to delete';
 
     const path = document.createElementNS('http://www.w3.org/2000/svg','path');
     path.setAttribute('d', d);
@@ -535,9 +611,11 @@ function enableDrag(el, gate) {
     if (e.target.classList.contains('pin')) return;
     if (connecting) { cancelConnecting(); return; }
     active = true; moved = false;
-    const rect = el.getBoundingClientRect();
-    ox = e.clientX - rect.left;
-    oy = e.clientY - rect.top;
+    const ar = canvasArea.getBoundingClientRect();
+    const sx = e.clientX - ar.left + canvasArea.scrollLeft;
+    const sy = e.clientY - ar.top + canvasArea.scrollTop;
+    ox = sx - gate.x;
+    oy = sy - gate.y;
     el.style.zIndex = 100;
     e.preventDefault();
   });
@@ -545,11 +623,11 @@ function enableDrag(el, gate) {
   const onMove = e => {
     if (!active) return;
     moved = true;
-    const cr = canvasArea.getBoundingClientRect();
-    let x = e.clientX - cr.left - ox;
-    let y = e.clientY - cr.top  - oy;
-    x = Math.max(0, Math.min(x, cr.width  - el.offsetWidth));
-    y = Math.max(0, Math.min(y, cr.height - el.offsetHeight));
+    const ar = canvasArea.getBoundingClientRect();
+    let x = e.clientX - ar.left + canvasArea.scrollLeft - ox;
+    let y = e.clientY - ar.top + canvasArea.scrollTop - oy;
+    x = Math.max(0, Math.min(x, canvas.offsetWidth - el.offsetWidth));
+    y = Math.max(0, Math.min(y, canvas.offsetHeight - el.offsetHeight));
     el.style.left = x + 'px';
     el.style.top  = y + 'px';
     gate.x = x; gate.y = y;
@@ -561,7 +639,10 @@ function enableDrag(el, gate) {
     active = false;
     el.style.zIndex = '';
     el._dragged = moved;
-    if (moved) simulate();
+    if (moved) {
+      simulate();
+      fitCanvasToContent();
+    }
   };
 
   document.addEventListener('mousemove', onMove);
@@ -578,8 +659,12 @@ canvasArea.addEventListener('drop', e => {
   const type = e.dataTransfer.getData('gtype');
   if (!type) return;
   const r = canvasArea.getBoundingClientRect();
-  createGate(type, e.clientX - r.left - 45, e.clientY - r.top - 24);
+  const x = e.clientX - r.left + canvasArea.scrollLeft - 45;
+  const y = e.clientY - r.top + canvasArea.scrollTop - 24;
+  createGate(type, x, y);
+  rebuildTogglePanel();
   simulate();
+  fitCanvasToContent();
 });
 
 // ─── CLEAR ───────────────────────────────────────────────────────────────────
@@ -589,6 +674,8 @@ function clearCanvas() {
   connecting = null;
   wiresGroup.innerHTML = '';
   previewLine.setAttribute('display','none');
+  rebuildTogglePanel();
+  fitCanvasToContent();
 }
 document.getElementById('clearBtn').addEventListener('click', clearCanvas);
 
@@ -668,85 +755,148 @@ function splitExpr(raw) {
   return { outputVar: 'Y', logicPart: raw };
 }
 
-// ─── BUILD CIRCUIT FROM AST ──────────────────────────────────────────────────
-function buildCircuitFromExpr(exprStr) {
+// ─── BUILD CIRCUIT FROM AST (multi-line = multiple outputs, shared INPUTs) ───
+function collectVarsFromAST(node, varSet) {
+  if (node.op === 'VAR') { varSet.add(node.name); return; }
+  if (node.expr)  collectVarsFromAST(node.expr, varSet);
+  if (node.left)  collectVarsFromAST(node.left, varSet);
+  if (node.right) collectVarsFromAST(node.right, varSet);
+}
+
+function depthOfAST(n) {
+  if (n.op === 'VAR') return 0;
+  const cd = [n.expr, n.left, n.right].filter(Boolean).map(depthOfAST);
+  return 1 + Math.max(...cd);
+}
+
+function buildCircuitsFromExprString(exprStr) {
+  const lines = exprStr.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return '<span class="status-err">Enter at least one expression.</span>';
+
+  const parsed = [];
+  for (let i = 0; i < lines.length; i++) {
+    try {
+      parsed.push(buildAST(lines[i]));
+    } catch (err) {
+      return `<span class="status-err">Line ${i + 1}: ${err.message}</span>`;
+    }
+  }
+
   try {
-    const { ast, outputVar } = buildAST(exprStr);
     clearCanvas();
 
     const varSet = new Set();
-    function collectVars(node) {
-      if (node.op === 'VAR') { varSet.add(node.name); return; }
-      if (node.expr)  collectVars(node.expr);
-      if (node.left)  collectVars(node.left);
-      if (node.right) collectVars(node.right);
-    }
-    collectVars(ast);
+    parsed.forEach(({ ast }) => collectVarsFromAST(ast, varSet));
+    const varArr = [...varSet].sort();
 
-    const canvasW = canvasArea.offsetWidth  || 800;
-    const canvasH = canvasArea.offsetHeight || 500;
-    const varArr  = [...varSet].sort();
-    const varMap  = new Map();
+    const inputX = 14;
+    const inputGap = 46;
+    const logicLeft = 112;
+    const colW = 100;
+    const blockGap = 32;
+
+    const varMap = new Map();
     varArr.forEach((v, i) => {
-      const g = createGate('INPUT', 40, 40 + i * 80, v);
+      const g = createGate('INPUT', inputX, 12 + i * inputGap, v);
       varMap.set(v, g.id);
     });
 
-    // Layout: assign depth
-    function depth(n) {
-      if (n.op === 'VAR') return 0;
-      const cd = [n.expr, n.left, n.right].filter(Boolean).map(depth);
-      return 1 + Math.max(...cd);
-    }
-    const maxDepth = depth(ast);
-
-    let rowCounters = {};
-    function placeNode(node, d) {
-      if (node.op === 'VAR') return varMap.get(node.name);
-      const type  = node.op;
-      rowCounters[d] = (rowCounters[d] || 0);
-      const col   = maxDepth - d;
-      const x     = 160 + col * 160;
-      const y     = 60 + rowCounters[d] * 90;
-      rowCounters[d]++;
-      const g     = createGate(type, x, y);
-
-      if (node.expr) {
-        const cid = placeNode(node.expr, d - 1);
-        addWire(cid, 0, g.id, 0);
-      }
-      if (node.left) {
-        const cid = placeNode(node.left, d - 1);
-        addWire(cid, 0, g.id, 0);
-      }
-      if (node.right) {
-        const cid = placeNode(node.right, d - 1);
-        addWire(cid, 0, g.id, 1);
-      }
-      return g.id;
+    function inputCenterY(gid) {
+      const g = gates.find(x => x.id === gid);
+      if (!g) return 0;
+      const h = g.el.offsetHeight || GATE_BODY_H;
+      return g.y + h / 2;
     }
 
-    const rootId = placeNode(ast, maxDepth);
-    const outGate = createGate('OUTPUT', 160 + (maxDepth + 1) * 160, canvasH / 2 - 24, outputVar);
-    addWire(rootId, 0, outGate.id, 0);
+    let blockTop = 12;
+
+    parsed.forEach(({ ast, outputVar }) => {
+      const maxDepth = depthOfAST(ast);
+      const before = gates.length;
+
+      function xForCol(col) {
+        return logicLeft + (maxDepth - col) * colW;
+      }
+
+      function placeExpr(node, col) {
+        if (node.op === 'VAR') {
+          const gid = varMap.get(node.name);
+          if (!gid) throw new Error('Unknown var ' + node.name);
+          const cy = inputCenterY(gid);
+          const half = GATE_BODY_H / 2;
+          return { gid, y: cy, top: cy - half, bottom: cy + half };
+        }
+        if (node.op === 'NOT') {
+          const ch = placeExpr(node.expr, col - 1);
+          const gx = xForCol(col);
+          const gy = ch.y - GATE_BODY_H / 2;
+          const g = createGate('NOT', gx, gy);
+          addWire(ch.gid, 0, g.id, 0);
+          return { gid: g.id, y: ch.y, top: ch.top, bottom: ch.bottom };
+        }
+        let L = placeExpr(node.left, col - 1);
+        let R = placeExpr(node.right, col - 1);
+        if (L.y > R.y) { const t = L; L = R; R = t; }
+        const yMid = (L.y + R.y) / 2;
+        const gx = xForCol(col);
+        const gy = yMid - GATE_BODY_H / 2;
+        const g = createGate(node.op, gx, gy);
+        addWire(L.gid, 0, g.id, 0);
+        addWire(R.gid, 0, g.id, 1);
+        return {
+          gid: g.id,
+          y: yMid,
+          top: Math.min(L.top, R.top),
+          bottom: Math.max(L.bottom, R.bottom),
+        };
+      }
+
+      const root = placeExpr(ast, maxDepth);
+      const xOut = logicLeft + (maxDepth + 1) * colW;
+      const outY = root.y - GATE_BODY_H / 2;
+      const outGate = createGate('OUTPUT', xOut, outY, outputVar);
+      addWire(root.gid, 0, outGate.id, 0);
+
+      const created = gates.slice(before);
+      const minY = Math.min(...created.map(g => g.y));
+      const delta = blockTop - minY;
+      if (delta !== 0) {
+        created.forEach(g => {
+          g.y += delta;
+          g.el.style.top = g.y + 'px';
+        });
+      }
+      const maxBottom = Math.max(...created.map(g => g.y + (g.el.offsetHeight || GATE_BODY_H)));
+      blockTop = maxBottom + blockGap;
+    });
+
+    rebuildTogglePanel();
     simulate();
-    return `Circuit built for: <span style="color:#fff">${exprStr}</span>`;
+    requestAnimationFrame(() => {
+      fitCanvasToContent();
+      simulate();
+    });
+
+    const safeLines = lines.map(l => l.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+    const head = `<span class="status-ok">Built ${lines.length} circuit(s).</span>`;
+    const body = safeLines.map(l => `<span style="color:#fff">${l}</span>`).join('<br>');
+    return head + '<br>' + body;
   } catch (err) {
-    return `<span class="status-err">Parse error: ${err.message}</span>`;
+    return `<span class="status-err">Build error: ${err.message}</span>`;
   }
 }
 
-// ─── EXTRACT EXPRESSION ──────────────────────────────────────────────────────
-function extractExpr() {
-  const outGate = gates.find(g => g.type === 'OUTPUT');
-  if (!outGate) return 'No OUTPUT gate on canvas.';
+// ─── EXTRACT EXPRESSION(S) ───────────────────────────────────────────────────
+function extractAllExprs() {
+  const outs = gates.filter(g => g.type === 'OUTPUT').sort((a, b) => (a.y - b.y) || (a.id - b.id));
+  if (!outs.length) return 'No OUTPUT gate on canvas.';
   const visited = new Set();
   function build(gid) {
     if (visited.has(gid)) return '(cycle)';
     visited.add(gid);
     const g = gates.find(x => x.id === gid);
     if (!g) return '?';
-    if (g.type === 'INPUT')  return g.varName;
+    if (g.type === 'INPUT') return g.varName;
     if (g.type === 'OUTPUT') {
       const w = wires.find(w => w.toGid === gid && w.toIdx === 0);
       return w ? build(w.fromGid) : '?';
@@ -757,47 +907,87 @@ function extractExpr() {
     }
     const w0 = wires.find(w => w.toGid === gid && w.toIdx === 0);
     const w1 = wires.find(w => w.toGid === gid && w.toIdx === 1);
-    const l  = w0 ? build(w0.fromGid) : '?';
-    const r  = w1 ? build(w1.fromGid) : '?';
+    const l = w0 ? build(w0.fromGid) : '?';
+    const r = w1 ? build(w1.fromGid) : '?';
     return `(${l} ${g.type} ${r})`;
   }
-  const expr = build(outGate.id);
-  return `${outGate.varName || 'Y'} = ${expr}`;
+  return outs.map(og => {
+    visited.clear();
+    const expr = build(og.id);
+    return `${og.varName || 'Y'} = ${expr}`;
+  }).join('\n');
 }
 
-// ─── TRUTH TABLE ─────────────────────────────────────────────────────────────
-function generateTruthTable() {
-  const inGates  = gates.filter(g => g.type === 'INPUT').sort((a,b) => a.varName.localeCompare(b.varName));
-  const outGate  = gates.find(g => g.type === 'OUTPUT');
-  if (!inGates.length) return '<span class="status-err">Add at least one INPUT gate to the circuit first.</span>';
-  if (!outGate)        return '<span class="status-err">Add an OUTPUT gate to the circuit first.</span>';
-
-  const vars    = inGates.map(g => g.varName);
-  const n       = vars.length;
-  const saved   = {...inputValues};
-  const rows    = [];
-
-  for (let i = 0; i < (1 << n); i++) {
-    const combo = {};
-    vars.forEach((v, j) => { combo[v] = (i >> (n - 1 - j)) & 1; });
-    Object.assign(inputValues, combo);
-    const vals = simulate(combo);
-    rows.push({ combo: {...combo}, out: vals.get(outGate.id) ?? 0 });
+// ─── INPUT VARS THAT FEED ONE OUTPUT (subgraph, walking wires backward) ─────
+function collectInputVarsForOutput(outGateId) {
+  const gMap = new Map(gates.map(g => [g.id, g]));
+  const seen = new Set();
+  const stack = [outGateId];
+  const names = [];
+  const seenName = new Set();
+  while (stack.length) {
+    const gid = stack.pop();
+    if (seen.has(gid)) continue;
+    seen.add(gid);
+    const g = gMap.get(gid);
+    if (!g) continue;
+    if (g.type === 'INPUT') {
+      if (g.varName && g.varName !== '?' && !seenName.has(g.varName)) {
+        seenName.add(g.varName);
+        names.push(g.varName);
+      }
+      continue;
+    }
+    wires.filter(w => w.toGid === gid).forEach(w => stack.push(w.fromGid));
   }
+  return names.sort();
+}
+
+// ─── TRUTH TABLE(S) ──────────────────────────────────────────────────────────
+function generateTruthTable() {
+  const outGates = gates.filter(g => g.type === 'OUTPUT').sort((a, b) => (a.y - b.y) || (a.id - b.id));
+  if (!outGates.length) return '<span class="status-err">Add an OUTPUT gate to the circuit first.</span>';
+
+  const allInputNames = [...new Set(gates.filter(g => g.type === 'INPUT').map(g => g.varName).filter(Boolean))];
+  const saved = {...inputValues};
+  let html = '';
+
+  outGates.forEach((outGate, idx) => {
+    const vars = collectInputVarsForOutput(outGate.id);
+    if (!vars.length) {
+      html += `<div style="margin-top:${idx ? 16 : 0}px;"><span class="status-err">Output ${outGate.varName || 'OUT'} is not driven from any INPUT.</span></div>`;
+      return;
+    }
+
+    const n = vars.length;
+    const base = {};
+    allInputNames.forEach(v => { base[v] = 0; });
+
+    const rows = [];
+    for (let i = 0; i < (1 << n); i++) {
+      const combo = {};
+      vars.forEach((v, j) => { combo[v] = (i >> (n - 1 - j)) & 1; });
+      const full = {...base, ...combo};
+      const vals = simulate(full);
+      rows.push({ combo: {...combo}, out: vals.get(outGate.id) ?? 0 });
+    }
+
+    const oname = (outGate.varName || 'OUT').replace(/</g, '&lt;');
+    html += `<div style="margin-top:${idx ? 16 : 0}px;"><span style="color:#58a6ff;font-size:12px;font-weight:600;">${oname}</span></div>`;
+    html += '<table class="truth-table"><tr>';
+    vars.forEach(v => { html += `<th>${v}</th>`; });
+    html += `<th>${oname}</th></tr>`;
+    rows.forEach(row => {
+      html += '<tr>';
+      vars.forEach(v => { html += `<td class="${row.combo[v] ? 'v1' : 'v0'}">${row.combo[v]}</td>`; });
+      html += `<td class="${row.out ? 'v1' : 'v0'}">${row.out}</td></tr>`;
+    });
+    html += '</table>';
+  });
 
   Object.assign(inputValues, saved);
   simulate();
   refreshToggles();
-
-  let html = '<table class="truth-table"><tr>';
-  vars.forEach(v => { html += `<th>${v}</th>`; });
-  html += `<th>${outGate.varName || 'OUT'}</th></tr>`;
-  rows.forEach(row => {
-    html += '<tr>';
-    vars.forEach(v => { html += `<td class="${row.combo[v] ? 'v1' : 'v0'}">${row.combo[v]}</td>`; });
-    html += `<td class="${row.out ? 'v1' : 'v0'}">${row.out}</td></tr>`;
-  });
-  html += '</table>';
   return html;
 }
 
@@ -805,17 +995,18 @@ function generateTruthTable() {
 document.getElementById('buildBtn').addEventListener('click', () => {
   const v = document.getElementById('exprInput').value.trim();
   if (!v) return;
-  const msg = buildCircuitFromExpr(v);
-  // Switch to circuit tab
+  const msg = buildCircuitsFromExprString(v);
   switchTab('circuit');
   document.getElementById('tableContainer').innerHTML = msg;
 });
 
 document.getElementById('extractBtn').addEventListener('click', () => {
-  const expr = extractExpr();
-  document.getElementById('exprInput').value = typeof expr === 'string' && !expr.startsWith('No') ? expr : '';
-  document.getElementById('tableContainer').innerHTML = typeof expr === 'string'
-    ? `<span class="status-ok">Extracted:</span> <span style="color:#fff">${expr}</span>`
+  const expr = extractAllExprs();
+  const ok = typeof expr === 'string' && !expr.startsWith('No');
+  document.getElementById('exprInput').value = ok ? expr : '';
+  const esc = ok ? expr.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') : expr;
+  document.getElementById('tableContainer').innerHTML = ok
+    ? `<span class="status-ok">Extracted:</span><br><span style="color:#fff">${esc}</span>`
     : `<span class="status-err">${expr}</span>`;
 });
 
@@ -838,10 +1029,11 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-initToggles();
-// Starter example
+rebuildTogglePanel();
+fitCanvasToContent();
+window.addEventListener('resize', () => { fitCanvasToContent(); simulate(); });
 setTimeout(() => {
-  buildCircuitFromExpr('(A AND B) OR NOT C = Y');
+  buildCircuitsFromExprString('(A AND B) OR NOT C = Y');
 }, 80);
 
 })();
