@@ -131,6 +131,7 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
     <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Click wire (or right-click) to delete</span>
     <div class="navbar-actions">
       <a class="btn btn-secondary nav-link-btn" href="https://github.com/JasonSun2009CN/logic-gate-simulator" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button type="button" class="btn btn-secondary" id="readmeBtn">README</button>
       <button type="button" class="btn btn-secondary" id="donateBtn">Donate</button>
     </div>
   </div>
@@ -223,6 +224,19 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
     <div class="donate-images">
       <figure><img src="IMG_5462.JPG" alt="Donation QR code" loading="lazy"></figure>
       <figure><img src="IMG_5463.JPG" alt="Donation QR code" loading="lazy"></figure>
+    </div>
+  </div>
+</div>
+
+<div id="readmeModal" class="donate-modal" role="dialog" aria-modal="true" aria-labelledby="readmeModalTitle">
+  <div class="donate-modal-backdrop" id="readmeModalBackdrop" aria-hidden="true"></div>
+  <div class="donate-modal-panel" style="max-width: 800px;">
+    <div class="donate-modal-header">
+      <h2 id="readmeModalTitle">README.md</h2>
+      <button type="button" class="donate-modal-close" id="readmeModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div id="readmeContent" style="font-size: 13px; color: #e6edf3; line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; user-select: text; padding: 10px 0;">
+      Loading README...
     </div>
   </div>
 </div>
@@ -1092,6 +1106,45 @@ donateModalClose.addEventListener('click', closeDonateModal);
 donateModalBackdrop.addEventListener('click', closeDonateModal);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && donateModal.classList.contains('is-open')) closeDonateModal();
+});
+
+// ─── README MODAL ─────────────────────────────────────────────────────────────
+const readmeModal = document.getElementById('readmeModal');
+const readmeBtn = document.getElementById('readmeBtn');
+const readmeModalClose = document.getElementById('readmeModalClose');
+const readmeModalBackdrop = document.getElementById('readmeModalBackdrop');
+const readmeContent = document.getElementById('readmeContent');
+
+async function openReadmeModal() {
+  readmeModal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  readmeModalClose.focus();
+  
+  if (readmeContent.textContent.trim() === 'Loading README...') {
+    try {
+      const resp = await fetch('README.md');
+      if (resp.ok) {
+        readmeContent.textContent = await resp.text();
+      } else {
+        readmeContent.textContent = 'Failed to load README.md';
+      }
+    } catch (err) {
+      readmeContent.textContent = 'Error loading README.md: ' + err.message;
+    }
+  }
+}
+
+function closeReadmeModal() {
+  readmeModal.classList.remove('is-open');
+  document.body.style.overflow = '';
+  readmeBtn.focus();
+}
+
+readmeBtn.addEventListener('click', openReadmeModal);
+readmeModalClose.addEventListener('click', closeReadmeModal);
+readmeModalBackdrop.addEventListener('click', closeReadmeModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && readmeModal.classList.contains('is-open')) closeReadmeModal();
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
