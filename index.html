@@ -65,15 +65,22 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
 #wire-svg { position:absolute; top:0; left:0; pointer-events:none; display:block; }
 
 /* GATES */
-.gate { position:absolute; background:#1f2937; border:2px solid #58a6ff; border-radius:8px; padding:10px 16px; font-size:12px; cursor:move; min-width:80px; text-align:center; color:#fff; transition:box-shadow .15s; z-index:10; }
-.gate:hover { box-shadow:0 0 0 1px #58a6ff44; }
-.gate.selected { box-shadow:0 0 0 2px #f0883e; }
-.gate-delete { position:absolute; top:-8px; right:-8px; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; font-weight:bold; color:#f85149; background:#161b22; border:1px solid #5a2020; border-radius:4px; cursor:pointer; z-index:35; padding:0; user-select:none; }
+.gate { position:absolute; cursor:move; z-index:10; width:100px; height:50px; }
+.gate-body { width:100%; height:100%; display:block; overflow:visible; pointer-events:none; }
+.gate-body path, .gate-body rect, .gate-body circle { transition: stroke .15s, fill .15s; }
+.gate:hover .gate-body path, .gate:hover .gate-body rect, .gate:hover .gate-body circle { stroke:#fff; }
+.gate.selected .gate-body path, .gate.selected .gate-body rect, .gate.selected .gate-body circle { stroke:#f0883e; }
+.gate-delete { position:absolute; top:-6px; right:-6px; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; font-weight:bold; color:#f85149; background:#161b22; border:1px solid #5a2020; border-radius:4px; cursor:pointer; z-index:35; padding:0; user-select:none; }
 .gate-delete:hover { background:#3d1a1a; color:#fff; }
-.gate-label { pointer-events:none; font-size:11px; font-weight:600; }
-.gate-var { pointer-events:none; font-size:10px; color:#8b949e; }
+.gate-label { pointer-events:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:10px; font-weight:600; color:#8b949e; text-align:center; max-width: 70%; line-height: 1; }
+.gate-var { pointer-events:none; position:absolute; top:100%; left:50%; transform:translateX(-50%); font-size:10px; color:#8b949e; white-space: nowrap; margin-top: 2px; }
 
-/* PINS */
+/* SIDEBAR GATE ITEMS */
+.gate-item { position: relative; padding:0; background:transparent; border:none; border-radius:0; height:46px; width: 100%; display:flex; align-items:center; justify-content:center; cursor:grab; }
+.gate-item svg { width: 80px; height: 40px; }
+.gate-item:hover svg path, .gate-item:hover svg rect, .gate-item:hover svg circle { stroke:#58a6ff; background:rgba(88, 166, 255, 0.1); }
+.gate-item-label { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:9px; color:#8b949e; pointer-events:none; font-weight: 600; }
+.gate-item:active { cursor:grabbing; }
 .pin { width:14px; height:14px; border-radius:50%; background:#0d1117; border:2px solid #58a6ff; position:absolute; cursor:crosshair; transition:background .15s, transform .15s, border-color .15s; z-index:20; }
 .pin:hover { background:#58a6ff44; transform:scale(1.3); border-color:#fff; }
 .pin.connecting-source { border-color:#f0883e; background:#f0883e44; }
@@ -151,21 +158,48 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
       <div class="sidebar">
         <div class="sidebar-title">Input</div>
         <div class="gate-list">
-          <div class="gate-item" draggable="true" data-type="INPUT">INPUT</div>
+          <div class="gate-item" draggable="true" data-type="INPUT">
+            <svg viewBox="0 0 100 50"><rect x="20" y="5" width="60" height="40" rx="6" ry="6" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">INPUT</div>
+          </div>
         </div>
         <div class="sidebar-title">Gates</div>
         <div class="gate-list">
-          <div class="gate-item" draggable="true" data-type="AND">AND</div>
-          <div class="gate-item" draggable="true" data-type="OR">OR</div>
-          <div class="gate-item" draggable="true" data-type="NOT">NOT</div>
-          <div class="gate-item" draggable="true" data-type="XOR">XOR</div>
-          <div class="gate-item" draggable="true" data-type="NAND">NAND</div>
-          <div class="gate-item" draggable="true" data-type="NOR">NOR</div>
-          <div class="gate-item" draggable="true" data-type="XNOR">XNOR</div>
+          <div class="gate-item" draggable="true" data-type="AND">
+            <svg viewBox="0 0 100 50"><path d="M 20 5 L 50 5 A 30 20 0 0 1 50 45 L 20 45 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">AND</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="OR">
+            <svg viewBox="0 0 100 50"><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45 C 45 45 75 35 85 25 C 75 15 45 5 15 5 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">OR</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="NOT">
+            <svg viewBox="0 0 100 50"><path d="M 25 5 L 65 25 L 25 45 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /><circle cx="70" cy="25" r="5" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">NOT</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="XOR">
+            <svg viewBox="0 0 100 50"><path d="M 20 5 C 35 5 45 15 45 25 C 45 35 35 45 20 45 C 50 45 80 35 90 25 C 80 15 50 5 20 5 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45" fill="none" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">XOR</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="NAND">
+            <svg viewBox="0 0 100 50"><path d="M 20 5 L 50 5 A 30 20 0 0 1 50 45 L 20 45 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /><circle cx="85" cy="25" r="5" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">NAND</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="NOR">
+            <svg viewBox="0 0 100 50"><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45 C 45 45 75 35 85 25 C 75 15 45 5 15 5 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /><circle cx="90" cy="25" r="5" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">NOR</div>
+          </div>
+          <div class="gate-item" draggable="true" data-type="XNOR">
+            <svg viewBox="0 0 100 50"><path d="M 20 5 C 35 5 45 15 45 25 C 45 35 35 45 20 45 C 50 45 80 35 90 25 C 80 15 50 5 20 5 Z" fill="#1f2937" stroke="#30363d" stroke-width="2" /><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45" fill="none" stroke="#30363d" stroke-width="2" /><circle cx="95" cy="25" r="5" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">XNOR</div>
+          </div>
         </div>
         <div class="sidebar-title">Output</div>
         <div class="gate-list">
-          <div class="gate-item" draggable="true" data-type="OUTPUT">OUTPUT</div>
+          <div class="gate-item" draggable="true" data-type="OUTPUT">
+            <svg viewBox="0 0 100 50"><rect x="20" y="5" width="60" height="40" rx="6" ry="6" fill="#1f2937" stroke="#30363d" stroke-width="2" /></svg>
+            <div class="gate-item-label">OUTPUT</div>
+          </div>
         </div>
         <div class="sidebar-title" style="margin-top:4px;">Input Values</div>
         <div class="toggle-panel">
@@ -196,7 +230,7 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
   <div class="page page-expr">
     <div class="expr-page">
       <div>
-        <textarea class="expr-input" id="exprInput" rows="3" placeholder="e.g. one line: Y = (A AND B) OR NOT C&#10;or multiple lines (one expression per line)" style="width:100%;resize:vertical;"></textarea>
+        <textarea class="expr-input" id="exprInput" rows="3" placeholder="e.g. one line: X = (A AND B) OR NOT C&#10;or multiple lines (one expression per line)" style="width:100%;resize:vertical;"></textarea>
         <p class="hint-text" style="margin-top:6px;">Supported: AND, OR, NOT, XOR, NAND, NOR, XNOR — use parentheses for grouping. One expression per line for multiple outputs.</p>
       </div>
       <div class="btn-bar">
@@ -253,7 +287,19 @@ const previewLine = document.getElementById('preview-line');
 const canvasArea  = document.getElementById('canvasArea');
 
 /** Approximate gate box height for layout before measure */
-const GATE_BODY_H = 46;
+const GATE_BODY_H = 50;
+
+const GATE_SHAPES = {
+  INPUT:  '<rect x="20" y="5" width="60" height="40" rx="6" ry="6" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="80" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  OUTPUT: '<rect x="20" y="5" width="60" height="40" rx="6" ry="6" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="25" x2="20" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  AND:    '<path d="M 20 5 L 50 5 A 30 20 0 0 1 50 45 L 20 45 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="20" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="20" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="80" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  OR:     '<path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45 C 45 45 75 35 85 25 C 75 15 45 5 15 5 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="28" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="28" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="85" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  NOT:    '<path d="M 25 5 L 65 25 L 25 45 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><circle cx="70" cy="25" r="5" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="25" x2="25" y2="25" stroke="#58a6ff" stroke-width="2" /><line x1="75" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  XOR:    '<path d="M 20 5 C 35 5 45 15 45 25 C 45 35 35 45 20 45 C 50 45 80 35 90 25 C 80 15 50 5 20 5 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45" fill="none" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="28" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="28" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="90" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  NAND:   '<path d="M 20 5 L 50 5 A 30 20 0 0 1 50 45 L 20 45 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><circle cx="85" cy="25" r="5" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="20" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="20" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="90" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  NOR:    '<path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45 C 45 45 75 35 85 25 C 75 15 45 5 15 5 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><circle cx="90" cy="25" r="5" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="28" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="28" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="95" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+  XNOR:   '<path d="M 20 5 C 35 5 45 15 45 25 C 45 35 35 45 20 45 C 50 45 80 35 90 25 C 80 15 50 5 20 5 Z" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><path d="M 15 5 C 30 5 40 15 40 25 C 40 35 30 45 15 45" fill="none" stroke="#58a6ff" stroke-width="2" /><circle cx="95" cy="25" r="5" fill="#1f2937" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="16.6" x2="28" y2="16.6" stroke="#58a6ff" stroke-width="2" /><line x1="0" y1="33.3" x2="28" y2="33.3" stroke="#58a6ff" stroke-width="2" /><line x1="100" y1="25" x2="100" y2="25" stroke="#58a6ff" stroke-width="2" />',
+};
 
 let gates      = [];
 let wires      = [];
@@ -262,6 +308,7 @@ let wireIdSeq  = 1;
 let connecting = null;  // { gateId, pinIdx, isOutput, pinEl }
 
 const INPUT_VARS = ['A','B','C','D','E','F'];
+const OUTPUT_VARS = ['X','Y','Z'];
 let inputValues  = { A:0, B:0, C:0, D:0, E:0, F:0 };
 
 const GATE_CFG = {
@@ -346,6 +393,15 @@ function nextInputVar() {
   return INPUT_VARS.find(v => !used.has(v)) || '?';
 }
 
+function nextOutputVar() {
+  const used = new Set(gates.filter(g => g.type === 'OUTPUT').map(g => g.varName));
+  const free = OUTPUT_VARS.find(v => !used.has(v));
+  if (free) return free;
+  let i = 1;
+  while (used.has('OUTPUT' + i)) i++;
+  return 'OUTPUT' + i;
+}
+
 function createGate(type, x, y, varName) {
   const cfg = GATE_CFG[type];
   if (!cfg) return null;
@@ -359,14 +415,17 @@ function createGate(type, x, y, varName) {
   const vn = type === 'INPUT'
     ? (varName || nextInputVar())
     : type === 'OUTPUT'
-      ? (varName != null && String(varName).trim() !== '' ? String(varName).trim().toUpperCase() : 'OUT')
+      ? (varName != null && String(varName).trim() !== '' ? String(varName).trim().toUpperCase() : nextOutputVar())
       : null;
 
-  el.innerHTML = type === 'INPUT'
-    ? `<div class="gate-label">${vn}</div><div class="gate-var">= 0</div>`
-    : type === 'OUTPUT'
-    ? `<div class="gate-label">${vn}</div><div class="gate-var">= 0</div>`
-    : `<div class="gate-label">${type}</div>`;
+  const shape = GATE_SHAPES[type] || '';
+  el.innerHTML = `<svg class="gate-body" viewBox="0 0 100 50">${shape}</svg>`;
+
+  if (type === 'INPUT' || type === 'OUTPUT') {
+    el.innerHTML += `<div class="gate-label">${vn}</div><div class="gate-var">= 0</div>`;
+  } else {
+    el.innerHTML += `<div class="gate-label">${type}</div>`;
+  }
 
   const gate = { id, type, x, y, el, varName: vn, currentVal: 0 };
 
@@ -643,15 +702,18 @@ function simulate(overrides) {
   gates.forEach(g => {
     const v = vals.get(g.id) ?? 0;
     g.currentVal = v;
+    const svgPaths = g.el.querySelectorAll('path, rect, circle');
+    let color = '#58a6ff';
     if (g.type === 'OUTPUT') {
-      g.el.style.borderColor = v ? '#3fb950' : '#f85149';
+      color = v ? '#3fb950' : '#f85149';
       g.el.querySelector('.gate-var').textContent = '= ' + v;
     } else if (g.type === 'INPUT') {
-      g.el.style.borderColor = (iv[g.varName] ?? 0) ? '#3fb950' : '#58a6ff';
+      color = (iv[g.varName] ?? 0) ? '#3fb950' : '#58a6ff';
       g.el.querySelector('.gate-var').textContent = '= ' + (iv[g.varName] ?? 0);
     } else {
-      g.el.style.borderColor = v ? '#3fb950' : '#58a6ff';
+      color = v ? '#3fb950' : '#58a6ff';
     }
+    svgPaths.forEach(p => p.setAttribute('stroke', color));
   });
 
   redrawWires(vals);
@@ -807,7 +869,7 @@ function splitExpr(raw) {
     if (/^[A-Za-z]\w{0,3}$/.test(parts[0])) return { outputVar: parts[0].toUpperCase(), logicPart: parts[1] };
     if (/^[A-Za-z]\w{0,3}$/.test(parts[1])) return { outputVar: parts[1].toUpperCase(), logicPart: parts[0] };
   }
-  return { outputVar: 'Y', logicPart: raw };
+  return { outputVar: 'X', logicPart: raw };
 }
 
 // ─── BUILD CIRCUIT FROM AST (multi-line = multiple outputs, shared INPUTs) ───
@@ -969,7 +1031,7 @@ function extractAllExprs() {
   return outs.map(og => {
     visited.clear();
     const expr = build(og.id);
-    return `${og.varName || 'Y'} = ${expr}`;
+    return `${og.varName || 'X'} = ${expr}`;
   }).join('\n');
 }
 
@@ -1152,7 +1214,7 @@ rebuildTogglePanel();
 fitCanvasToContent();
 window.addEventListener('resize', () => { fitCanvasToContent(); simulate(); });
 setTimeout(() => {
-  buildCircuitsFromExprString('(A AND B) OR NOT C = Y');
+  buildCircuitsFromExprString('(A AND B) OR NOT C = X');
 }, 80);
 
 })();
