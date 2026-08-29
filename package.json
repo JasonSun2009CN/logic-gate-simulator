@@ -1,0 +1,14 @@
+{
+  "name": "logic-gate-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Visual drag-and-drop logic circuit designer and simulator",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

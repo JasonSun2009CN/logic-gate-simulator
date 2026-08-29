@@ -143,6 +143,13 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
 
 /* WIRE RIGHT-CLICK DELETE */
 .wire-hit { pointer-events:stroke; cursor:pointer; }
+
+/* CONTACT MODAL */
+.contact-list { display:grid; gap:14px; margin-top:12px; font-size:14px; }
+.contact-list p { display:flex; align-items:center; gap:10px; margin:0; color:#e6edf3; flex-wrap:wrap; }
+.contact-label { color:#8b949e; min-width:64px; }
+.contact-list a { color:#58a6ff; text-decoration:none; }
+.contact-list a:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -153,6 +160,7 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
     <span class="help-tip">Click output pin → click input pin to wire &nbsp;|&nbsp; Click wire (or right-click) to delete</span>
     <div class="navbar-actions">
       <a class="btn btn-secondary nav-link-btn" href="https://github.com/JasonSun2009CN/logic-gate-simulator" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button type="button" class="btn btn-secondary" id="contactBtn">Contact</button>
       <button type="button" class="btn btn-secondary" id="readmeBtn">README</button>
       <button type="button" class="btn btn-secondary" id="donateBtn">Donate</button>
     </div>
@@ -286,6 +294,21 @@ body { background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direc
     </div>
     <div id="readmeContent" style="font-size: 13px; color: #e6edf3; line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; user-select: text; padding: 10px 0;">
       Loading README...
+    </div>
+  </div>
+</div>
+
+<div id="contactModal" class="donate-modal" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+  <div class="donate-modal-backdrop" id="contactModalBackdrop" aria-hidden="true"></div>
+  <div class="donate-modal-panel">
+    <div class="donate-modal-header">
+      <h2 id="contactModalTitle">Contact</h2>
+      <button type="button" class="donate-modal-close" id="contactModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="contact-list">
+      <p><span class="contact-label">Email:</span> <span>js13342936357</span></p>
+      <p><span class="contact-label">Phone:</span> <a href="tel:+8613342936357">+86 13342936357</a></p>
+      <p><span class="contact-label">WeChat:</span> <span>_13342936357</span></p>
     </div>
   </div>
 </div>
@@ -1223,6 +1246,31 @@ readmeModalClose.addEventListener('click', closeReadmeModal);
 readmeModalBackdrop.addEventListener('click', closeReadmeModal);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && readmeModal.classList.contains('is-open')) closeReadmeModal();
+});
+
+// ─── CONTACT MODAL ────────────────────────────────────────────────────────────
+const contactModal = document.getElementById('contactModal');
+const contactBtn = document.getElementById('contactBtn');
+const contactModalClose = document.getElementById('contactModalClose');
+const contactModalBackdrop = document.getElementById('contactModalBackdrop');
+
+function openContactModal() {
+  contactModal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  contactModalClose.focus();
+}
+
+function closeContactModal() {
+  contactModal.classList.remove('is-open');
+  document.body.style.overflow = '';
+  contactBtn.focus();
+}
+
+contactBtn.addEventListener('click', openContactModal);
+contactModalClose.addEventListener('click', closeContactModal);
+contactModalBackdrop.addEventListener('click', closeContactModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && contactModal.classList.contains('is-open')) closeContactModal();
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

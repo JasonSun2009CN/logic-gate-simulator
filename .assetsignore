@@ -1,0 +1,19 @@
+# Cloudflare Workers static asset excludes.
+# The repository root stays the single source of truth for GitHub Pages.
+
+# Version control / local files
+.git/
+.gitignore
+.assetsignore
+.DS_Store
+
+# Cloudflare Workers tooling / source
+.wrangler/
+node_modules/
+src/
+wrangler.toml
+wrangler.jsonc
+package.json
+package-lock.json
+public/
+dist/

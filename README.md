@@ -4,6 +4,7 @@ A visual drag-and-drop logic circuit designer and simulator. Build circuits with
 ![Logic](https://img.shields.io/badge/Logic-Gate-blue)
 ![HTML5](https://img.shields.io/badge/HTML5-CSS%2BJS-orange)
 ![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-brightgreen)
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)
 
 
 ## ✨ Features
@@ -25,6 +26,27 @@ open index.html
 
 ### GitHub Pages
 https://JasonSun2009CN.github.io/logic-gate-simulator
+
+### Cloudflare Workers
+```bash
+# 1. Install dependencies (only needed if you want the npm scripts)
+npm install
+
+# 2. Local preview
+npm run dev
+
+# 3. Deploy to Cloudflare Workers
+npm run deploy
+```
+
+Or directly with `npx`:
+```bash
+npx wrangler deploy
+```
+
+> Cloudflare Workers serves the same root files as GitHub Pages.
+> `wrangler.toml` and `.assetsignore` keep the repo root as the single source
+> of truth, so you can continue using GitHub Pages without changing its content.
 
 ## 📌 How to Use
 1. **Add Gates** – Drag from toolbox to canvas
@@ -101,9 +123,13 @@ https://JasonSun2009CN.github.io/logic-gate-simulator
 ## 📁 Project Structure
 ```
 logic-gate-simulator/
-├── index.html          # Main entry
+├── index.html          # Main entry (also served by GitHub Pages)
 ├── README.md           # Project documentation
-└── spec.md             # Reserved for specification files
+├── spec.md             # Reserved for specification files
+├── src/index.js        # Cloudflare Worker entry point
+├── wrangler.toml       # Cloudflare Workers configuration
+├── .assetsignore       # Files excluded from Cloudflare static assets
+└── package.json        # npm scripts for Wrangler
 ```
 
 ## 🔧 Tech Stack
